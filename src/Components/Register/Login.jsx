@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './Login.css';
 import img4 from "../../assets/photo4.png"
+import { db } from "./Firebase";
+import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 
 
 function Login() {
@@ -13,18 +15,21 @@ function Login() {
     const handleRoleChange = (e) => {
         const role = e.target.value;
         setSelectedRole(role);
-        const doctorFields = document.querySelectorAll('.doctor-only');
-        const licenseInput = document.querySelector('input[name="licenseId"]');
-        const specializationSelect = document.querySelector('select[name="specialization"]');
+        const userIdLabel = document.getElementById('userIdLabel');
+        const userIdInput = document.getElementById('userIdInput');
         
-        if (role === 'doctor') {
-            doctorFields.forEach(field => field.style.display = 'block');
-            if (licenseInput) licenseInput.required = true;
-            if (specializationSelect) specializationSelect.required = true;
+        if (role === 'admin') {
+            userIdLabel.textContent = '📧 Email';
+            userIdInput.placeholder = 'Enter your email';
+            userIdInput.type = 'email';
+        } else if (role === 'doctors') {
+            userIdLabel.textContent = '🆔 Doctor ID';
+            userIdInput.placeholder = 'Enter Doctor ID (e.g., DR8A3F2B1C)';
+            userIdInput.type = 'text';
         } else {
-            doctorFields.forEach(field => field.style.display = 'none');
-            if (licenseInput) licenseInput.required = false;
-            if (specializationSelect) specializationSelect.required = false;
+            userIdLabel.textContent = '📧 Licence ID';
+            userIdInput.placeholder = 'Enter licence Id';
+            userIdInput.type = 'text';
         }
     };
 
@@ -51,45 +56,133 @@ function Login() {
             const userId = formData.get('userId');
             const password = formData.get('password');
             
-            console.log('UserId:', userId, 'Password:', password); // Debug log
+            console.log('UserId:', userId, 'Password:', password);
             
             button.textContent = 'Signing In...';
             button.disabled = true;
             
-            if (userId === 'doctor123' && password === 'password') {
-                setTimeout(() => {
-                    window.location.href = '/dashboard';
-                }, 1500);
-            } else if (userId === 'user1234' && password === '1234') {
+            const role = formData.get('role');
+            
+            if (role === 'doctor') {
+                const doctorsQuery = query(
+                    collection(db, 'doctors'),
+                    where('doctorId', '==', userId),
+                    where('password', '==', password)
+                );
+                getDocs(doctorsQuery)
+                    .then((querySnapshot) => {
+                        if (!querySnapshot.empty) {
+                            const doctorData = querySnapshot.docs[0].data();
+                            localStorage.setItem('currentUser', JSON.stringify({
+                                ...doctorData,
+                                id: querySnapshot.docs[0].id
+                            }));
+                            setTimeout(() => {
+                                window.location.href = '/dashboard';
+                            }, 1500);
+                        } else {
+                            setTimeout(() => {
+                                alert('Invalid Doctor ID or password!');
+                                button.textContent = originalText;
+                                button.disabled = false;
+                            }, 1500);
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Error checking doctor credentials:', error);
+                        setTimeout(() => {
+                            alert('Login error. Please try again.');
+                            button.textContent = originalText;
+                            button.disabled = false;
+                        }, 1500);
+                    });
+                return;
+            }
+               else if (userId === 'user1234' && password === '1234' && role === 'user') {
                 setTimeout(() => {
                     window.location.href = '/user';
                 }, 1500);
+            } else if (role === 'admin') {
+                // Check admin credentials from Firestore
+                const adminQuery = query(
+                    collection(db, 'admins'),
+                    where('email', '==', userId),
+                    where('password', '==', password)
+                );
+                
+                getDocs(adminQuery)
+                    .then((querySnapshot) => {
+                        if (!querySnapshot.empty) {
+                            setTimeout(() => {
+                                window.location.href = '/admindashboard';
+                            }, 1500);
+                        } else {
+                            setTimeout(() => {
+                                alert('Invalid admin credentials!');
+                                button.textContent = originalText;
+                                button.disabled = false;
+                            }, 1500);
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Error checking admin credentials:', error);
+                        setTimeout(() => {
+                            alert('Login error. Please try again.');
+                            button.textContent = originalText;
+                            button.disabled = false;
+                        }, 1500);
+                    });
+                return; // Exit early for admin login
             } else {
                 setTimeout(() => {
-                    alert('Invalid credentials! Use: doctor123/password or user1234/1234');
+                    alert('Invalid credentials or role mismatch!');
                     button.textContent = originalText;
                     button.disabled = false;
                 }, 1500);
             }
         } else {
-          
+            // Admin signup
             const formData = new FormData(e.target);
-            const licenseId = formData.get('licenseId');
+            const firstName = formData.get('firstName');
+            const lastName = formData.get('lastName');
             const email = formData.get('email');
+            const password = formData.get('password');
+            const confirmPassword = formData.get('confirmPassword');
             
-            button.textContent = 'Verifying License...';
+            if (password !== confirmPassword) {
+                alert('Passwords do not match!');
+                return;
+            }
+            
+            button.textContent = 'Creating Admin Account...';
             button.disabled = true;
-         
-            setTimeout(() => {
-                button.textContent = 'Sending Credentials...';
-                
-                setTimeout(() => {
-                    alert(`Registration successful! Login credentials have been sent to ${email}. Please check your email and use the provided credentials to sign in.`);
+            
+            // Store admin data in Firestore
+            const adminData = {
+                firstName,
+                lastName,
+                email,
+                password, // In production, hash this password
+                role: 'admin',
+                createdAt: new Date().toISOString(),
+                licenseId: `ADMIN_${Date.now()}` // Generate admin ID
+            };
+            
+            addDoc(collection(db, 'admins'), adminData)
+                .then(() => {
+                    setTimeout(() => {
+                        alert(`Admin account created successfully! Use your email and password to login.`);
+                        button.textContent = originalText;
+                        button.disabled = false;
+                        setActiveTab('login');
+                    }, 1500);
+                })
+                .catch((error) => {
+                    console.error('Error creating admin account:', error);
+                    alert('Error creating account. Please try again.');
                     button.textContent = originalText;
                     button.disabled = false;
-                    setActiveTab('login'); 
-                }, 2000);
-            }, 2000);
+                });
         }
     };
 
@@ -106,7 +199,7 @@ function Login() {
                 <div className="form-container glass-morphism slide-in">
                     <div className={`tabs ${activeTab}`}>
                         <button className={`tab ${activeTab === 'login' ? 'active' : ''}`} onClick={showLogin}>🔐 Sign In</button>
-                        <button className={`tab ${activeTab === 'signup' ? 'active' : ''}`} onClick={showSignup}>🔐Sign Up</button>
+                        <button className={`tab ${activeTab === 'signup' ? 'active' : ''}`} onClick={showSignup}>🔐Admin</button>
                     </div>
 
                     <div className="form-content-wrapper">
@@ -116,13 +209,22 @@ function Login() {
                                 <p>Continue your wellness journey</p>
                             </div>
                             <form onSubmit={(e) => handleSubmit(e, true)}>
+                                 <div className="input-group">
+                                    <label>👥 Role</label>
+                                    <select name="role" onChange={handleRoleChange} required>
+                                        <option value="">Select your role</option>
+                                        <option value="doctor">Doctor</option>
+                                        <option value="user">User/Patient</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                </div>
                                 <div className="input-group">
-                                    <label>📧 Licence ID</label>
-                                    <input type="text" name="userId" placeholder="Enter your Id (try: doctor123 or user1234)" required />
+                                    <label id="userIdLabel">📧 Licence ID</label>
+                                    <input type="text" name="userId" id="userIdInput" placeholder='Enter licence Id' required />
                                 </div>
                                 <div className="input-group">
                                     <label>🔒 Password</label>
-                                    <input type="password" name="password" placeholder="Enter your password (try: password or 1234)" required />
+                                    <input type="password" name="password" placeholder='Enter your password'required />
                                 </div>
                                 <div className="form-footer">
                                     <label>
@@ -144,14 +246,7 @@ function Login() {
                                 <p>Begin your wellness transformation</p>
                             </div>
                             <form onSubmit={(e) => handleSubmit(e, false)}>
-                                <div className="input-group">
-                                    <label>👥 Role</label>
-                                    <select name="role" onChange={handleRoleChange} required>
-                                        <option value="">Select your role</option>
-                                        <option value="doctor">Doctor</option>
-                                        <option value="user">User/Patient</option>
-                                    </select>
-                                </div>
+                
                                 
                                 <div className="input-grid">
                                     <div className="input-group1">
@@ -163,25 +258,17 @@ function Login() {
                                         <input type="text" name="lastName" placeholder="Last name" required />
                                     </div>
                                 </div>
-                
-                                <div className="input-group doctor-only" style={{display: 'none'}}>
-                                    <label>🏥 Medical License ID</label>
-                                    <input type="text" name="licenseId" placeholder="Enter your medical license number" />
-                                </div>
                                 <div className="input-group">
                                     <label>📧 Email Address</label>
                                     <input type="email" name="email" placeholder="Enter your email" required />
                                 </div>
-                                <div className="input-group doctor-only" style={{display: 'none'}}>
-                                    <label>🩺 Specialization</label>
-                                    <select name="specialization">
-                                        <option value="">Select your specialization</option>
-                                        <option value="ayurveda">Ayurveda</option>
-                                        <option value="general">General Medicine</option>
-                                        <option value="nutrition">Nutrition & Dietetics</option>
-                                        <option value="internal">Internal Medicine</option>
-                                        <option value="other">Other</option>
-                                    </select>
+                                <div className="input-group">
+                                    <label>🔒 password</label>
+                                    <input type="password" name="password" placeholder="Enter your password" required />
+                                </div>
+                                <div className="input-group">   
+                                    <label>🔒 confirm password</label>
+                                    <input type="password" name="confirmPassword" placeholder="Confirm password" required />
                                 </div>
                                 <div className="checkbox-group">
                                     <label>

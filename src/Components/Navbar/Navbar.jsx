@@ -10,7 +10,7 @@ const Navbar = ({ onServicesClick }) => {
             
             <div className="navbar-logo">
                 
-              Ayurdiet
+              Ayudiet
             </div>
             <div className={`hamburger ${isOpen ? 'active' : ''}`} onClick={() => setIsOpen(!isOpen)}>
                 <span></span>

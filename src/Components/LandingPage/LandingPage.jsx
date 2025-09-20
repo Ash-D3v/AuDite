@@ -20,7 +20,7 @@ const LandingPage = () => {
         <div className="landing-page">
             <div className="hero-section">
                 <div className="content">
-                    <h1 className="title">Diet Charts made Easy with <span className="highlight">Ayurdiet</span></h1>
+                    <h1 className="title">Diet Charts made Easy with <span className="highlight">Ayudiet</span></h1>
                     <p className="subtitle">Personalized Ayurvedic diet plans powered by AI to nourish your body, mind & soul</p>
                     <div className="features-preview">
                         <span className="feature">🌿 Natural Healing</span>

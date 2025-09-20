@@ -1,10 +1,19 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import './Overall.css'
 import { UserPlus } from 'lucide-react';
 import { NotebookPen } from 'lucide-react';
 import { CalendarRange } from 'lucide-react';
 
 const Overall = () => {
+    const [doctorName, setDoctorName] = useState('');
+
+    useEffect(() => {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (currentUser && currentUser.name) {
+            setDoctorName(currentUser.name);
+        }
+    }, []);
+
     const RecentActivity= [
     { id: 'New patient added', label: 'Dashboard', icon: <UserPlus /> },
     { id: 'Diet plan updated', label: 'Patients', icon: <NotebookPen />},
@@ -13,7 +22,7 @@ const Overall = () => {
   return (
     <>
       <div className="content-header">
-        <h1>Welcome</h1>
+        <h1>Welcome,  {doctorName}</h1>
       </div>
       <div className="overall-container">
         <div className="con-body">
