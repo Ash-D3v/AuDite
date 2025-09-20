@@ -33,7 +33,7 @@ AuDite is a comprehensive solution for Ayurvedic hospitals to create, manage, an
 - **Styling**: CSS
 - **State Management**: React Hooks
 
-## 📁 Project Structure
+## 📁 Clean Project Structure
 
 ```
 AuDite/
@@ -50,16 +50,22 @@ AuDite/
 │       ├── models/          # Data models and schemas
 │       ├── utils/           # Utility functions
 │       └── tests/           # Unit and integration tests
-├── src/                      # React Frontend
-│   ├── components/          # Reusable UI components
-│   ├── pages/              # Page components
-│   ├── services/           # API services
-│   └── styles/             # Global styles
-├── model/                   # ML Model files
-├── public/                  # Static assets
-├── Dockerfile              # Backend containerization
-├── docker-compose.yml      # Local development setup
-└── README.md              # This file
+├── frontend/                  # React Frontend
+│   ├── src/                 # React source code
+│   ├── public/              # Static assets
+│   ├── package.json         # Frontend dependencies
+│   ├── vite.config.js       # Vite configuration
+│   └── index.html           # Main HTML file
+├── model/                    # ML Model files
+│   ├── dosha_classifier.pkl
+│   ├── ayurvedic_compatibility_gnn.h5
+│   ├── compatibility_encoders.pkl
+│   └── agni_predictor.h5
+├── Dockerfile               # Backend containerization
+├── docker-compose.yml       # Local development setup
+├── requirements.txt         # Python dependencies
+├── nginx.conf              # Reverse proxy configuration
+└── README.md               # This file
 ```
 
 ## 🤖 ML Models
@@ -72,7 +78,7 @@ AuDite/
 | **NutrientCalculator** | Gradient Boosting | 94.5% | Macro/micronutrient estimation |
 | **AgniPredictor** | LSTM Time Series | 88.2% | Digestive power assessment |
 
-## 🛠️ Setup & Installation
+## 🛠️ Quick Start
 
 ### Prerequisites
 - Python 3.11+
@@ -98,30 +104,29 @@ AuDite/
    - Place it in `secrets/firebase-adminsdk.json`
    - Update `GOOGLE_CLOUD_PROJECT` in `.env`
 
-4. **Environment Configuration**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-5. **Run with Docker**
+4. **Run with Docker**
    ```bash
    docker-compose up --build
    ```
 
-6. **Or run locally**
+5. **Or run locally**
    ```bash
    uvicorn app:app --reload --port 8000
    ```
 
 ### Frontend Setup
 
-1. **Install dependencies**
+1. **Navigate to frontend directory**
+   ```bash
+   cd frontend
+   ```
+
+2. **Install dependencies**
    ```bash
    npm install
    ```
 
-2. **Start development server**
+3. **Start development server**
    ```bash
    npm run dev
    ```
@@ -178,6 +183,7 @@ pytest --cov=src --cov-report=html
 
 ### Frontend Tests
 ```bash
+cd frontend
 # Run tests
 npm test
 
@@ -200,9 +206,10 @@ docker run -p 8000:8000 audite-backend
 ### Production Deployment
 ```bash
 # Backend - Deploy to Cloud Run
-gcloud run deploy audite-backend --source .
+gcloud run deploy audite-backend --source backend/
 
 # Frontend - Deploy to Vercel/Netlify
+cd frontend
 npm run build
 # Deploy dist/ folder to your hosting service
 ```
